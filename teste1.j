@@ -29,7 +29,7 @@ public class Series {
         int sum = a, t = a, i = n;
 
         while (i-- > 1) {
-            if (kind == ARITHMETIC) {
+            if(kind == ARITHMETIC) {
             t += d;
         } else if (kind == GEOMETRIC) {
             t = t * d;
@@ -39,6 +39,8 @@ public class Series {
 
         return sum;
     }
+
+    //Exemplo de comentario
 
     public static void main(String [] args) {
 
