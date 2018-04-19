@@ -8,99 +8,143 @@ RESET   ="\x1b[0m"
 BOLD	="\033[1m"
 NORMAL	="\033[0m"
 
-LISTA_TOKENS = dict()
 
-#Tokens delimitadores
-TOKEN_DELIMITADORES = set([',',';','(',')','{','}','[',']'])
+class Token(object):
 
-#Tokens Operadores
-TOKEN_OPERADORES = set(['+','-','*','/','%','=','++','--','+=','-='])
+    def __init__(self, tipo, valor):
+        # Provavelmente vai precisar adicionar mais atributos
+        self.tipo = tipo
+        self.valor = valor
 
-#Tokens Palavras reservadas
-TOKEN_PALAVRASRESERVADAS = set(["int", "float", "boolean", "char", "string",
-                                "function", "if", "else", "then", "while", "do"])
-
-
-#Palavras reservadas
-reservadas = set(["abstract", "extends", "int", "protected", "this", "boolean",
+class Anallex:
+    def __init__(self):
+        # Tokens Palavras reservadas
+        self.RESERVADA = "RESERVADA"
+        self.OPERADOR = "OPERADOR"
+        self.DELIMITADOR = "DELIMITADOR"
+        self.IDENTIFICADOR = "IDENTIFICADOR"
+        self.NUMERO = "NUMERO"
+        self.STRING = "STRING"
+        self.TOKEN_RESERVADAS = set(["abstract", "extends", "int", "protected", "this", "boolean",
                   "false", "new", "public", "true", "char", "import", "null",
                   "return", "void", "class", "if", "package", "static", "while",
                   "else", "instanceof", "private", "super"])
+        # Tokens delimitadores
+        self.TOKEN_DELIMITADORES = set([',', ';', '(', ')', '{', '}', '[', ']', '.'])
+        # Tokens Operadores
+        self.TOKEN_OPERADORES = set(['+','-','*','/','%','=','++','--','+=','-='])
+        # Lista de Tokens
+        self.Tokens = []
 
-def criarToken(tipo, valor):
-    LISTA_TOKENS.
+    def criarToken(self, tipo, valor):
+        self.Tokens.append(Token(tipo, valor))
 
-#Processa caractere atual da linha
-def analisaCaractere(caractere, contaLinha,contaColuna):
-    if (caractere == 'H'):
-        print ("Char: ", caractere," | Linha: ", str(contaLinha)," | Coluna: ", str(contaColuna))
+    @staticmethod
+    def idCheck(substr):
+        # Verifica se a substring não começa com números e se os caracteres são válidos para ser identificador
+        if len(substr) == 0:
+            return False
+        isntLetter = lambda n: n < 65 or n > 122 or (n > 90 and n < 97) or n == 95 or n == 36
+        isValid = lambda n: (n>47 and n<58) or (n>64 and n<91) or n == 95 or (n>96 and n<123) or n == 36
+        if isntLetter(ord(substr[0])):
+            return False
+        return all([isValid(ord(i)) for i in substr[1:]])
 
-#Processa arquivo TXT incluindo uma linha        
-def processaArquivo(arquivo):
-    with open(arquivo) as file:
-        #incrementador para identificar linha atual
-        contaLinha = 0
-        for linha in file:
-            pos = len(linha)-1
+    @staticmethod
+    def numCheck(substr):
+        if substr == "":
+            return False
+        isNum = lambda n: n > 47 and n < 57
+        return all([isNum(ord(c)) for c in substr])
 
-            # Remover comentários
-            if("//" in linha):
-                pos = linha.index("//")
-            queijo = linha[:pos].split()
-
-
-            for i in queijo:
-                if i in reservadas:
-                    print(RED+str(i)+NORMAL)
-                    #token reservada
-                else:
+    def subParser(self, substr):
+        aux = ""
+        op = ""
+        quotesOpen = False
+        for c in substr:
+            if quotesOpen:
+                aux += c
+                continue
+            if op != "" and c not in self.TOKEN_OPERADORES:
+                self.criarToken(self.OPERADOR, op)
+                op = ""
+            elif c in self.TOKEN_OPERADORES:
+                if self.idCheck(aux):
+                    self.criarToken(self.IDENTIFICADOR, aux)
                     aux = ""
-                    for c in i:
-                        if c in TOKEN_DELIMITADORES:
-                            #token delim
-                            pass
-                        elif c in TOKEN_OPERADORES:
-                            #token op
-                            pass
-                        else:
-                            aux += c
-                        if len(aux) <= 2:
-                            if aux in TOKEN_OPERADORES:
-                                #token
-                                aux = ""
-                                pass
-                        if aux in TOKEN_PALAVRASRESERVADAS:
-                            #token reservada
-                            aux = ""
-                            pass
+                if op == "":
+                    if c == '+' or c == '-' or '=':
+                        op += c
+                    else:
+                        self.criarToken(self.OPERADOR, c)
+                else:
+                    if c == '+' or c == '-' or c == '=':
+                        self.criarToken(self.OPERADOR, op+c)
+                        op = ""
+                    else:
+                        self.criarToken(self.OPERADOR, c)
+            elif c in self.TOKEN_DELIMITADORES:
+                if self.idCheck(aux):
+                    self.criarToken(self.IDENTIFICADOR, aux)
+                    aux = ""
+                self.criarToken(self.DELIMITADOR, c)
+            # Verificar começo de string
+            elif c == "\"" or c == "\'":
+                if self.idCheck(aux):
+                    self.criarToken(self.IDENTIFICADOR, aux)
+                    aux = ""
+                aux += c
+                if not quotesOpen:
+                    quotesOpen = True
+                else:
+                    quotesOpen = False
+                    self.criarToken(self.STRING, aux)
+            else:
+                aux += c
+                if aux in self.TOKEN_RESERVADAS:
+                    self.criarToken(self.RESERVADA, aux)
+                    aux = ""
+        if self.idCheck(aux):
+            self.criarToken(self.IDENTIFICADOR, aux)
+        if op != "":
+            self.criarToken(self.OPERADOR, op)
+        if self.numCheck(aux):
+            self.criarToken(self.NUMERO, aux)
+
+    def printTokens(self):
+        for t in self.Tokens:
+            print(RED+"<{}, {}>".format(t.tipo, t.valor)+NORMAL)
+
+    def __call__(self, arqFonte):
+        # Processa arquivo com código fonte
+        with open(arqFonte) as file:
+            # incrementador para identificar linha atual
+            contaLinha = 0
+            for linha in file:
+                pos = len(linha) - 1
+                # Remover comentários
+                if ("//" in linha):
+                    pos = linha.index("//")
+                novaLinha = linha[:pos].split()
+                for substr in novaLinha:
+                    # Análise rápida
+                    if substr in self.TOKEN_RESERVADAS:
+                        self.criarToken(self.RESERVADA, substr)
+                    # Análise caractere por caractere
+                    else:
+                        self.subParser(substr)
+            self.printTokens()
+
+def main():
+    # Define o caminho do arquivo usado
+    arquivo = 'teste1.j'
+    lex = Anallex()
+    lex(arquivo)
+
+if __name__ == "__main__":
+    main()
 
 
-
-
-
-
-
-
-
-
-
-            # contaLinha += 1
-            # if (linha.startswith('//')):
-            #     print("Linha foi pega: ",linha)
-            #
-            # #incrementador para identificar coluna atual
-            # contaColuna = 0
-            # for caractere in linha:
-            #     contaColuna +=1
-            #
-            #     #Ignora todo o caractere que for espaço em branco
-            #     if (caractere.strip()):
-            #         analisaCaractere(caractere, contaLinha, contaColuna)
-
-
-#Define o caminho do arquivo usado    
-arquivo = 'teste1.j'
 
 
 #Processa o arquivo acima e inclui uma linha
-processaArquivo(arquivo)
