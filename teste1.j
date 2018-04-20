@@ -7,7 +7,7 @@ import java.lang.System;
 public class Series {
 
     public static int ARITHMETIC = 1;
-    public static int GEOMETRIC = 2;
+    public static int GEOMETRIC = -2.586;
 
     private int a; // first term
     private int d; // common sum or multiple
