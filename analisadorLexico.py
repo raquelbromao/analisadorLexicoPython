@@ -32,15 +32,17 @@ class Anallex:
         # Tokens delimitadores
         self.TOKEN_DELIMITADORES = set([',', ';', '(', ')', '{', '}', '[', ']', '.'])
         # Tokens Operadores
-        self.TOKEN_OPERADORES = set(['+','-','*','/','%','=','++','--','+=','-='])
+        self.TOKEN_OPERADORES = set(['+','-','*','/','%','=','++','--','+=','-=', '>', '<', '<=', '>='])
         # Lista de Tokens
         self.Tokens = []
+        # Buffer da análise
+        self.BuffLeitura = ""
 
-    def criarToken(self, tipo, valor):
+    def criar_token(self, tipo, valor):
         self.Tokens.append(Token(tipo, valor))
 
     @staticmethod
-    def idCheck(substr):
+    def id_check(substr):
         # Verifica se a substring não começa com números e se os caracteres são válidos para ser identificador
         if len(substr) == 0:
             return False
@@ -51,65 +53,71 @@ class Anallex:
         return all([isValid(ord(i)) for i in substr[1:]])
 
     @staticmethod
-    def numCheck(substr):
+    def num_check(substr):
         if substr == "":
             return False
-        isNum = lambda n: n > 47 and n < 57
+        isNum = lambda n: n in range(47,57)
         return all([isNum(ord(c)) for c in substr])
 
-    def subParser(self, substr):
-        aux = ""
+    def id_or_num(self):
+        if self.id_check(self.BuffLeitura):
+            self.criar_token(self.IDENTIFICADOR, self.BuffLeitura)
+        elif self.num_check(self.BuffLeitura):
+            self.criar_token(self. NUMERO, self.BuffLeitura)
+        else:
+            # Tratar erro
+            pass
+        self.BuffLeitura = ""
+
+    def lex_parser(self, novaLinha):
+        openQuotes = False
         op = ""
-        quotesOpen = False
-        for c in substr:
-            if quotesOpen:
-                aux += c
+        for substr in novaLinha:
+            # Análise rápida
+            if substr in self.TOKEN_RESERVADAS:
+                self.criar_token(self.RESERVADA, substr)
                 continue
-            if op != "" and c not in self.TOKEN_OPERADORES:
-                self.criarToken(self.OPERADOR, op)
-                op = ""
-            elif c in self.TOKEN_OPERADORES:
-                if self.idCheck(aux):
-                    self.criarToken(self.IDENTIFICADOR, aux)
-                    aux = ""
-                if op == "":
-                    if c == '+' or c == '-' or '=':
-                        op += c
+            # Análise caractere por caractere
+            print(substr)
+            for c in substr:
+                if c == "\"" or c == "\'":
+                    if not openQuotes:
+                        self.id_or_num()
+                        openQuotes = True
                     else:
-                        self.criarToken(self.OPERADOR, c)
-                else:
-                    if c == '+' or c == '-' or c == '=':
-                        self.criarToken(self.OPERADOR, op+c)
-                        op = ""
+                        openQuotes = False
+                        self.criar_token(self.STRING, self.BuffLeitura+c)
+                        self.BuffLeitura = ""
+                elif openQuotes:
+                    self.BuffLeitura += c
+                    continue
+                if op != "" and c not in self.TOKEN_OPERADORES:
+                    self.criar_token(self.OPERADOR, op)
+                    op = ""
+                elif c in self.TOKEN_OPERADORES:
+                    self.id_or_num()
+                    if op == "":
+                        if c == '+' or c == '-' or '=':
+                            op += c
+                        else:
+                            self.criar_token(self.OPERADOR, c)
                     else:
-                        self.criarToken(self.OPERADOR, c)
-            elif c in self.TOKEN_DELIMITADORES:
-                if self.idCheck(aux):
-                    self.criarToken(self.IDENTIFICADOR, aux)
-                    aux = ""
-                self.criarToken(self.DELIMITADOR, c)
-            # Verificar começo de string
-            elif c == "\"" or c == "\'":
-                if self.idCheck(aux):
-                    self.criarToken(self.IDENTIFICADOR, aux)
-                    aux = ""
-                aux += c
-                if not quotesOpen:
-                    quotesOpen = True
+                        if c == '+' or c == '-' or c == '=':
+                            self.criar_token(self.OPERADOR, op+c)
+                            op = ""
+                        else:
+                            self.criar_token(self.OPERADOR, c)
+                elif c in self.TOKEN_DELIMITADORES:
+                    self.id_or_num()
+                    self.criar_token(self.DELIMITADOR, c)
+                # Verificar começo de string
                 else:
-                    quotesOpen = False
-                    self.criarToken(self.STRING, aux)
-            else:
-                aux += c
-                if aux in self.TOKEN_RESERVADAS:
-                    self.criarToken(self.RESERVADA, aux)
-                    aux = ""
-        if self.idCheck(aux):
-            self.criarToken(self.IDENTIFICADOR, aux)
-        if op != "":
-            self.criarToken(self.OPERADOR, op)
-        if self.numCheck(aux):
-            self.criarToken(self.NUMERO, aux)
+                    self.BuffLeitura += c
+                    if self.BuffLeitura in self.TOKEN_RESERVADAS:
+                        self.criar_token(self.RESERVADA, self.BuffLeitura)
+                        self.BuffLeitura = ""
+            if not openQuotes:
+                self.id_or_num()
 
     def printTokens(self):
         for t in self.Tokens:
@@ -123,16 +131,10 @@ class Anallex:
             for linha in file:
                 pos = len(linha) - 1
                 # Remover comentários
-                if ("//" in linha):
+                if "//" in linha:
                     pos = linha.index("//")
                 novaLinha = linha[:pos].split()
-                for substr in novaLinha:
-                    # Análise rápida
-                    if substr in self.TOKEN_RESERVADAS:
-                        self.criarToken(self.RESERVADA, substr)
-                    # Análise caractere por caractere
-                    else:
-                        self.subParser(substr)
+                self.lex_parser(novaLinha)
             self.printTokens()
 
 def main():
