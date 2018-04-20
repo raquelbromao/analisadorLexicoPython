@@ -33,7 +33,7 @@ class Anallex:
         # Tokens delimitadores
         self.TOKEN_DELIMITADORES = set([',', '.', '[', '{', '(', ')', '}', ']', ';'])
         # Tokens Operadores
-        self.TOKEN_OPERADORES = set(['=', '==', '>', '++', '&&', '<=', '>=', '!', '-', '-=', '--', '+', '+=', '*', '*='])
+        self.TOKEN_OPERADORES = set(['=', '==', '>', '++', '&&', '<=', '!', '-', '--', '+', '+=', '*'])
         # Lista de Tokens
         self.Tokens = []
         # Buffer da análise
@@ -73,6 +73,9 @@ class Anallex:
     def lex_parser(self, novaLinha):
         openQuotes = False
         op = ""
+        ##split manual
+        ##strlist = []
+
         for substr in novaLinha:
             # Análise rápida
             if substr in self.TOKEN_RESERVADAS:
@@ -117,8 +120,12 @@ class Anallex:
                     if self.BuffLeitura in self.TOKEN_RESERVADAS:
                         self.criar_token(self.RESERVADA, self.BuffLeitura)
                         self.BuffLeitura = ""
+            self.BuffLeitura += ' '
+
             if not openQuotes:
                 self.id_or_num()
+
+
 
     def printTokens(self):
         for t in self.Tokens:
