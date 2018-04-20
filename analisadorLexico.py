@@ -1,13 +1,13 @@
-RED     ="\x1b[31m"
-GREEN   ="\x1b[32m"
-YELLOW  ="\x1b[33m"
-BLUE    ="\x1b[34m"
-MAGENTA ="\x1b[35m"
-CYAN    ="\x1b[36m"
-RESET   ="\x1b[0m"
-BOLD	="\033[1m"
-NORMAL	="\033[0m"
-
+#Tabela de cores
+RED = "\x1b[31m"
+GREEN = "\x1b[32m"
+YELLOW = "\x1b[33m"
+BLUE = "\x1b[34m"
+MAGENTA = "\x1b[35m"
+CYAN = "\x1b[36m"
+RESET = "\x1b[0m"
+BOLD = "\033[1m"
+NORMAL = "\033[0m"
 
 class Token(object):
 
@@ -15,6 +15,7 @@ class Token(object):
         # Provavelmente vai precisar adicionar mais atributos
         self.tipo = tipo
         self.valor = valor
+
 
 class Anallex:
     def __init__(self):
@@ -26,13 +27,13 @@ class Anallex:
         self.NUMERO = "NUMERO"
         self.STRING = "STRING"
         self.TOKEN_RESERVADAS = set(["abstract", "extends", "int", "protected", "this", "boolean",
-                  "false", "new", "public", "true", "char", "import", "null",
-                  "return", "void", "class", "if", "package", "static", "while",
-                  "else", "instanceof", "private", "super"])
+                                     "false", "new", "public", "true", "char", "import", "null",
+                                     "return", "void", "class", "if", "package", "static", "while",
+                                     "else", "instanceof", "private", "super"])
         # Tokens delimitadores
-        self.TOKEN_DELIMITADORES = set([',', ';', '(', ')', '{', '}', '[', ']', '.'])
+        self.TOKEN_DELIMITADORES = set([',', '.', '[', '{', '(', ')', '}', ']', '.;'])
         # Tokens Operadores
-        self.TOKEN_OPERADORES = set(['+','-','*','/','%','=','++','--','+=','-=', '>', '<', '<=', '>='])
+        self.TOKEN_OPERADORES = set(['=', '==', '>', '++', '&&', '<=', '>=', '!', '-', '-=', '--', '+', '+=', '*', '*='])
         # Lista de Tokens
         self.Tokens = []
         # Buffer da análise
@@ -47,7 +48,7 @@ class Anallex:
         if len(substr) == 0:
             return False
         isntLetter = lambda n: n < 65 or n > 122 or (n > 90 and n < 97) or n == 95 or n == 36
-        isValid = lambda n: (n>47 and n<58) or (n>64 and n<91) or n == 95 or (n>96 and n<123) or n == 36
+        isValid = lambda n: (n > 47 and n < 58) or (n > 64 and n < 91) or n == 95 or (n > 96 and n < 123) or n == 36
         if isntLetter(ord(substr[0])):
             return False
         return all([isValid(ord(i)) for i in substr[1:]])
@@ -56,14 +57,14 @@ class Anallex:
     def num_check(substr):
         if substr == "":
             return False
-        isNum = lambda n: n in range(47,57)
+        isNum = lambda n: n in range(47, 57)
         return all([isNum(ord(c)) for c in substr])
 
     def id_or_num(self):
         if self.id_check(self.BuffLeitura):
             self.criar_token(self.IDENTIFICADOR, self.BuffLeitura)
         elif self.num_check(self.BuffLeitura):
-            self.criar_token(self. NUMERO, self.BuffLeitura)
+            self.criar_token(self.NUMERO, self.BuffLeitura)
         else:
             # Tratar erro
             pass
@@ -86,7 +87,7 @@ class Anallex:
                         openQuotes = True
                     else:
                         openQuotes = False
-                        self.criar_token(self.STRING, self.BuffLeitura+c)
+                        self.criar_token(self.STRING, self.BuffLeitura + c)
                         self.BuffLeitura = ""
                 elif openQuotes:
                     self.BuffLeitura += c
@@ -103,7 +104,7 @@ class Anallex:
                             self.criar_token(self.OPERADOR, c)
                     else:
                         if c == '+' or c == '-' or c == '=':
-                            self.criar_token(self.OPERADOR, op+c)
+                            self.criar_token(self.OPERADOR, op + c)
                             op = ""
                         else:
                             self.criar_token(self.OPERADOR, c)
@@ -121,7 +122,18 @@ class Anallex:
 
     def printTokens(self):
         for t in self.Tokens:
-            print(RED+"<{}, {}>".format(t.tipo, t.valor)+NORMAL)
+            if t.tipo == "RESERVADA":
+                print("< {} , {} >".format(BOLD + RED + str(t.tipo), BOLD + RED + str(t.valor) + RESET + NORMAL))
+            elif t.tipo == "DELIMITADOR":
+                print("< {} , {} >".format(BOLD + BLUE + str(t.tipo), BOLD + BLUE + str(t.valor) + RESET + NORMAL))
+            elif t.tipo == "IDENTIFICADOR":
+                print(
+                    "< {} , {} >".format(BOLD + GREEN + str(t.tipo), BOLD + GREEN + str(t.valor) + RESET + NORMAL))
+            elif t.tipo == "OPERADOR":
+                print("< {} , {} >".format(BOLD + CYAN + str(t.tipo), BOLD + CYAN + str(t.valor) + RESET + NORMAL))
+            else:
+                print(
+                    "< {} , {} >".format(BOLD + MAGENTA + str(t.tipo), BOLD + MAGENTA + str(t.valor) + RESET + NORMAL))
 
     def __call__(self, arqFonte):
         # Processa arquivo com código fonte
@@ -137,16 +149,15 @@ class Anallex:
                 self.lex_parser(novaLinha)
             self.printTokens()
 
+
 def main():
     # Define o caminho do arquivo usado
     arquivo = 'teste1.j'
     lex = Anallex()
     lex(arquivo)
 
+
 if __name__ == "__main__":
     main()
 
-
-
-
-#Processa o arquivo acima e inclui uma linha
+# Processa o arquivo acima e inclui uma linha
