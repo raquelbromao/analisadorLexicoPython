@@ -31,7 +31,7 @@ class Anallex:
                                      "return", "void", "class", "if", "package", "static", "while",
                                      "else", "instanceof", "private", "super"])
         # Tokens delimitadores
-        self.TOKEN_DELIMITADORES = set([',', '.', '[', '{', '(', ')', '}', ']', '.;'])
+        self.TOKEN_DELIMITADORES = set([',', '.', '[', '{', '(', ')', '}', ']', ';'])
         # Tokens Operadores
         self.TOKEN_OPERADORES = set(['=', '==', '>', '++', '&&', '<=', '>=', '!', '-', '-=', '--', '+', '+=', '*', '*='])
         # Lista de Tokens
