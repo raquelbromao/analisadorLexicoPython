@@ -20,11 +20,11 @@ class Token(object):
 class Anallex:
     def __init__(self):
         # Tokens Palavras reservadas
-        self.RESERVADA = "RESERVADA"
-        self.OPERADOR = "OPERADOR"
-        self.DELIMITADOR = "DELIMITADOR"
-        self.IDENTIFICADOR = "IDENTIFICADOR"
-        self.NUMERO = "NUMERO"
+        self.RESERVADA = "RESERVED"
+        self.OPERADOR = "OPERATOR"
+        self.DELIMITADOR = "SEPARATOR"
+        self.IDENTIFICADOR = "IDENTIFIER"
+        self.NUMERO = "INT"
         self.STRING = "STRING"
         self.TOKEN_RESERVADAS = set(["abstract", "extends", "int", "protected", "this", "boolean",
                                      "false", "new", "public", "true", "char", "import", "null",
@@ -65,6 +65,7 @@ class Anallex:
             self.criar_token(self.IDENTIFICADOR, self.BuffLeitura)
         elif self.num_check(self.BuffLeitura):
             self.criar_token(self.NUMERO, self.BuffLeitura)
+            print("BUFF: @"+self.BuffLeitura+"@")
         else:
             # Tratar erro
             pass
@@ -82,7 +83,7 @@ class Anallex:
                 self.criar_token(self.RESERVADA, substr)
                 continue
             # Análise caractere por caractere
-            print(substr)
+            # print(substr)
             for c in substr:
                 if c == "\"" or c == "\'":
                     if not openQuotes:
@@ -129,14 +130,14 @@ class Anallex:
 
     def printTokens(self):
         for t in self.Tokens:
-            if t.tipo == "RESERVADA":
+            if t.tipo == "RESERVED":
                 print("< {} , {} >".format(BOLD + RED + str(t.tipo), BOLD + RED + str(t.valor) + RESET + NORMAL))
-            elif t.tipo == "DELIMITADOR":
+            elif t.tipo == "SEPARATOR":
                 print("< {} , {} >".format(BOLD + BLUE + str(t.tipo), BOLD + BLUE + str(t.valor) + RESET + NORMAL))
-            elif t.tipo == "IDENTIFICADOR":
+            elif t.tipo == "IDENTIFIER":
                 print(
                     "< {} , {} >".format(BOLD + GREEN + str(t.tipo), BOLD + GREEN + str(t.valor) + RESET + NORMAL))
-            elif t.tipo == "OPERADOR":
+            elif t.tipo == "OPERATOR":
                 print("< {} , {} >".format(BOLD + CYAN + str(t.tipo), BOLD + CYAN + str(t.valor) + RESET + NORMAL))
             else:
                 print(
