@@ -61,18 +61,24 @@ class Anallex:
         return all([isNum(ord(c)) for c in substr])
 
     def id_or_num(self):
+        # Aqui só é verificado se o buffer pode ser um identificador ou número
         if self.id_check(self.BuffLeitura):
             self.criar_token(self.IDENTIFICADOR, self.BuffLeitura)
         elif self.num_check(self.BuffLeitura):
             self.criar_token(self.NUMERO, self.BuffLeitura)
             print("BUFF: @"+self.BuffLeitura+"@")
         else:
-            # Tratar erro
+            # Talvez aqui poderia vir o tratamento de erro de identificadores ou numerais inválidos
             pass
         self.BuffLeitura = ""
 
     def lex_parser(self, novaLinha):
         openQuotes = False
+        '''
+                Essa variável 'openQuotes' é uma gambiarra pra quando o analisador encontra um começo
+            de string no código. Até que ele encontre o fim dessa string, os caracteres não precisam 
+            ser analisados; tudo é jogado diretamente no buffer, pra virar um token STRING
+        '''
         op = ""
         ##split manual
         ##strlist = []
@@ -85,6 +91,13 @@ class Anallex:
             # Análise caractere por caractere
             # print(substr)
             for c in substr:
+                # No geral, cada if serve pra identificar um tipo de token diferente
+                ''' 
+                        A função id_or_num é chamada toda vez que um caractere
+                    especial(operador, delimitador) é encontrado para que o buffer
+                    seja esvaziado e, caso haja um identificador ou número lá, que
+                    o devido token seja criado
+                '''
                 if c == "\"" or c == "\'":
                     if not openQuotes:
                         self.id_or_num()
@@ -100,6 +113,13 @@ class Anallex:
                     self.criar_token(self.OPERADOR, op)
                     op = ""
                 elif c in self.TOKEN_OPERADORES:
+                    '''
+                            Esse serve pra identificar operadores de um ou dois caracteres.
+                        O token não é criado imediatamente após um caractere de operador
+                        ser encontrado. Só após a leitura do próximo caractere que o token 
+                        será criado. Por isso coloquei essa variável 'op' como um bufferzinho
+                        específico pros operadores
+                    '''
                     self.id_or_num()
                     if op == "":
                         if c == '+' or c == '-' or '=':
@@ -115,8 +135,8 @@ class Anallex:
                 elif c in self.TOKEN_DELIMITADORES:
                     self.id_or_num()
                     self.criar_token(self.DELIMITADOR, c)
-                # Verificar começo de string
                 else:
+                    # Se o caractere analisado não for nada especial, ele é simplesmente jogado no buffer
                     self.BuffLeitura += c
                     if self.BuffLeitura in self.TOKEN_RESERVADAS:
                         self.criar_token(self.RESERVADA, self.BuffLeitura)
@@ -124,6 +144,12 @@ class Anallex:
             self.BuffLeitura += ' '
 
             if not openQuotes:
+                '''
+                        Depois que a substring foi analisada por inteiro, pode ocorrer
+                    de sobrar algo no buffer. Se não foi encontrado aspas(o que significaria
+                    que nenhum caractere deve ser analisado, e sim jogado no buffer), esse algo
+                    que sobrou no buffer pode ser um número ou identificador
+                '''
                 self.id_or_num()
 
 
