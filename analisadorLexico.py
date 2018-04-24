@@ -11,11 +11,19 @@ NORMAL = "\033[0m"
 
 class Token(object):
 
-    def __init__(self, tipo, valor):
+    def __init__(self, tipo, valor, linha, coluna):
         # Provavelmente vai precisar adicionar mais atributos
         self.tipo = tipo
         self.valor = valor
+        self.linha = linha
+        self.coluna = coluna
 
+class Char(object):
+
+    def __init__(self, c, lin, col):
+        self.val = c # Tipo char
+        self.lin = lin
+        self.col = col
 
 class Anallex:
     def __init__(self):
@@ -37,43 +45,70 @@ class Anallex:
         # Lista de Tokens
         self.Tokens = []
         # Buffer da análise
-        self.BuffLeitura = ""
+        self.BuffLeitura = [] # Vai ser uma lista de Char, contendo o caractere, a linha e a coluna onde foi encontrado
+        self.Linha = 0
+        self.Coluna = 0
+        self.openQuotes = False
 
     def criar_token(self, tipo, valor):
-        self.Tokens.append(Token(tipo, valor))
+        self.Tokens.append(Token(tipo, valor, self.Linha, self.Coluna-len(valor)))
 
     @staticmethod
     def id_check(substr):
         # Verifica se a substring não começa com números e se os caracteres são válidos para ser identificador
         if len(substr) == 0:
             return False
-        isntLetter = lambda n: n < 65 or n > 122 or (n > 90 and n < 97) or n == 95 or n == 36
-        isValid = lambda n: (n > 47 and n < 58) or (n > 64 and n < 91) or n == 95 or (n > 96 and n < 123) or n == 36
-        if isntLetter(ord(substr[0])):
+        isntLetter = lambda n: (n < 65 or n > 122) or (n > 90 and n < 97) or n == 95
+        isValid = lambda n: (n > 47 and n < 58) or (n > 64 and n < 91) or n == 95 or (n > 96 and n < 123) or n == 36 or n == 32
+        aux = True
+        if isntLetter(ord(substr[0].val)):
+            i = substr[0]
+            print("\"{}\" Caractere inválido para um identificador na linha {} e coluna {}".format(i.val, i.lin, i.col))
             return False
-        return all([isValid(ord(i)) for i in substr[1:]])
+        else:
+            for i in substr[1:]:
+                testeChar = isValid(ord(i.val))
+                aux = aux and testeChar
+                if not testeChar:
+                    print("\"{}\" Caractere inválido na linha {} e coluna {}".format(i.val, i.lin, i.col))
+        return aux
 
     @staticmethod
     def num_check(substr):
         if substr == "":
             return False
-        isNum = lambda n: n in range(47, 57)
-        return all([isNum(ord(c)) for c in substr])
+        isNum = lambda n: n in range(48, 58)
+        aux = True
+        for i in substr:
+            testeNum = isNum(ord(i.val))
+            aux = aux and testeNum
+        return aux
+
+    def buff_to_str(self):
+        #Converte a lista BuffLeitura pra string
+        out = ""
+        for c in self.BuffLeitura:
+            out += c.val
+        return out
 
     def id_or_num(self):
+        if self.openQuotes:
+            return
         # Aqui só é verificado se o buffer pode ser um identificador ou número
-        if self.id_check(self.BuffLeitura):
-            self.criar_token(self.IDENTIFICADOR, self.BuffLeitura)
+        if self.BuffLeitura == []:
+            return
         elif self.num_check(self.BuffLeitura):
-            self.criar_token(self.NUMERO, self.BuffLeitura)
-            print("BUFF: @"+self.BuffLeitura+"@")
+            self.criar_token(self.NUMERO, self.buff_to_str())
+        elif self.id_check(self.BuffLeitura):
+            self.criar_token(self.IDENTIFICADOR, self.buff_to_str())
         else:
-            # Talvez aqui poderia vir o tratamento de erro de identificadores ou numerais inválidos
-            pass
-        self.BuffLeitura = ""
+            # Modo de pânico
+            self.BuffLeitura = self.BuffLeitura[1:]
+            self.id_or_num()
+        self.BuffLeitura = []
 
     def lex_parser(self, novaLinha):
-        openQuotes = False
+        self.openQuotes = False
         '''
                 Essa variável 'openQuotes' é uma gambiarra pra quando o analisador encontra um começo
             de string no código. Até que ele encontre o fim dessa string, os caracteres não precisam 
@@ -82,15 +117,16 @@ class Anallex:
         op = ""
         ##split manual
         ##strlist = []
-
         for substr in novaLinha:
             # Análise rápida
             if substr in self.TOKEN_RESERVADAS:
                 self.criar_token(self.RESERVADA, substr)
+                self.Coluna += len(substr)+1 # +1 pelo espaço que é tirado
                 continue
             # Análise caractere por caractere
             # print(substr)
             for c in substr:
+                self.Coluna += 1
                 # No geral, cada if serve pra identificar um tipo de token diferente
                 ''' 
                         A função id_or_num é chamada toda vez que um caractere
@@ -99,19 +135,21 @@ class Anallex:
                     o devido token seja criado
                 '''
                 if c == "\"" or c == "\'":
-                    if not openQuotes:
+                    if not self.openQuotes:
                         self.id_or_num()
-                        openQuotes = True
+                        self.openQuotes = True
                     else:
-                        openQuotes = False
-                        self.criar_token(self.STRING, self.BuffLeitura + c)
-                        self.BuffLeitura = ""
-                elif openQuotes:
-                    self.BuffLeitura += c
+                        self.openQuotes = False
+                        self.criar_token(self.STRING, self.buff_to_str() + c)
+                        self.BuffLeitura = []
+                        continue
+                elif self.openQuotes:
+                    self.BuffLeitura.append(Char(c, self.Linha, self.Coluna))
                     continue
                 if op != "" and c not in self.TOKEN_OPERADORES:
                     self.criar_token(self.OPERADOR, op)
                     op = ""
+                    self.BuffLeitura.append(Char(c, self.Linha, self.Coluna))
                 elif c in self.TOKEN_OPERADORES:
                     '''
                             Esse serve pra identificar operadores de um ou dois caracteres.
@@ -137,13 +175,13 @@ class Anallex:
                     self.criar_token(self.DELIMITADOR, c)
                 else:
                     # Se o caractere analisado não for nada especial, ele é simplesmente jogado no buffer
-                    self.BuffLeitura += c
-                    if self.BuffLeitura in self.TOKEN_RESERVADAS:
-                        self.criar_token(self.RESERVADA, self.BuffLeitura)
-                        self.BuffLeitura = ""
-            self.BuffLeitura += ' '
-
-            if not openQuotes:
+                    self.BuffLeitura.append(Char(c, self.Linha, self.Coluna))
+                    if self.buff_to_str() in self.TOKEN_RESERVADAS:
+                        self.criar_token(self.RESERVADA, self.buff_to_str())
+                        self.BuffLeitura = []
+            if self.openQuotes:
+                self.BuffLeitura.append(Char(' ', self.Linha, self.Coluna))
+            else:
                 '''
                         Depois que a substring foi analisada por inteiro, pode ocorrer
                     de sobrar algo no buffer. Se não foi encontrado aspas(o que significaria
@@ -151,7 +189,7 @@ class Anallex:
                     que sobrou no buffer pode ser um número ou identificador
                 '''
                 self.id_or_num()
-
+            self.Coluna += 1
 
 
     def printTokens(self):
@@ -168,17 +206,29 @@ class Anallex:
             else:
                 print(
                     "< {} , {} >".format(BOLD + MAGENTA + str(t.tipo), BOLD + MAGENTA + str(t.valor) + RESET + NORMAL))
+    @staticmethod
+    def contar_espacos(linha):
+        if linha == "":
+            return 0
+        contador = 0
+        for i in range(len(linha)):
+            if linha[i] == ' ':
+                contador += 1
+            else:
+                break
+        return contador
 
     def __call__(self, arqFonte):
         # Processa arquivo com código fonte
         with open(arqFonte) as file:
             # incrementador para identificar linha atual
-            contaLinha = 0
             for linha in file:
+                self.Linha += 1
                 pos = len(linha) - 1
                 # Remover comentários
                 if "//" in linha:
                     pos = linha.index("//")
+                self.Coluna = self.contar_espacos(linha[:pos])-1
                 novaLinha = linha[:pos].split()
                 self.lex_parser(novaLinha)
             self.printTokens()

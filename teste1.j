@@ -7,11 +7,12 @@ import java.lang.System;
 public class Series {
 
     public static int ARITHMETIC = 1;
-    public static int GEOMETRIC = -2.586;
+    public static int GEOMETRIC = 586;
 
     private int a; // first term
     private int d; // common sum or multiple
     private int n; // number of terms
+    1alo = 23;
 
     public Series () {
         this(1, 1, 10);
